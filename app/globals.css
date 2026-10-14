@@ -1,32 +1,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f7fb;
+  --background: #f4f5fb;
+  --background-grad-1: #eef0fb;
+  --background-grad-2: #f6f4fb;
   --surface: #ffffff;
-  --surface-2: #f1f3f9;
-  --foreground: #10131a;
-  --muted: #5b6474;
-  --border: #e4e7ef;
-  --brand: #4f46e5;
+  --surface-2: #f3f4fa;
+  --surface-hover: #fafbff;
+  --foreground: #0e1016;
+  --muted: #646d80;
+  --muted-2: #8b93a5;
+  --border: #e7e9f2;
+  --border-strong: #d9dcea;
+  --brand: #5b4bf0;
+  --brand-2: #7c5cf5;
+  --brand-soft: #ece9fe;
   --brand-fg: #ffffff;
-  --ok: #0f9d58;
-  --warn: #d97706;
-  --danger: #dc2626;
+  --ok: #0ca567;
+  --ok-soft: #dcf5ea;
+  --warn: #e08a00;
+  --warn-soft: #fcefd6;
+  --danger: #e0413c;
+  --danger-soft: #fce4e3;
+  --shadow-sm: 0 1px 2px rgba(16, 20, 40, 0.04), 0 1px 3px rgba(16, 20, 40, 0.06);
+  --shadow-md: 0 4px 12px -2px rgba(16, 20, 40, 0.08), 0 2px 6px -2px rgba(16, 20, 40, 0.05);
+  --shadow-lg: 0 18px 40px -12px rgba(40, 30, 120, 0.22);
+  --shadow-brand: 0 10px 28px -8px rgba(91, 75, 240, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0d12;
-    --surface: #141821;
-    --surface-2: #1c2130;
-    --foreground: #eef1f6;
-    --muted: #9aa3b2;
-    --border: #262c3a;
-    --brand: #7c7cf5;
-    --brand-fg: #0b0d12;
+    --background: #090a10;
+    --background-grad-1: #0d0e18;
+    --background-grad-2: #0b0c14;
+    --surface: #14161f;
+    --surface-2: #1b1e2a;
+    --surface-hover: #1e2230;
+    --foreground: #eef0f6;
+    --muted: #9aa2b4;
+    --muted-2: #6d7588;
+    --border: #262a37;
+    --border-strong: #333848;
+    --brand: #8b7bff;
+    --brand-2: #a78bfa;
+    --brand-soft: #241f45;
+    --brand-fg: #0b0c14;
     --ok: #34d399;
+    --ok-soft: #10281f;
     --warn: #fbbf24;
-    --danger: #f87171;
+    --warn-soft: #2a2110;
+    --danger: #fb7185;
+    --danger-soft: #2a1317;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 6px 16px -4px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 20px 44px -14px rgba(0, 0, 0, 0.7);
+    --shadow-brand: 0 10px 30px -8px rgba(139, 123, 255, 0.45);
   }
 }
 
@@ -34,19 +62,126 @@
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-hover: var(--surface-hover);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-2: var(--muted-2);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-soft: var(--brand-soft);
   --color-brand-fg: var(--brand-fg);
   --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
   --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
   --font-sans: var(--font-geist-sans);
+  --shadow-soft: var(--shadow-md);
+  --shadow-float: var(--shadow-lg);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, Arial, sans-serif;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(900px 500px at 12% -8%, var(--background-grad-1), transparent 60%),
+    radial-gradient(800px 460px at 108% 4%, var(--background-grad-2), transparent 58%);
+  background-attachment: fixed;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+
+/* Scrollbar discreta */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Animações */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes sheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.anim-fade-up {
+  animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-sheet {
+  animation: sheetUp 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-overlay {
+  animation: overlayIn 0.2s ease both;
+}
+.dot-pulse {
+  animation: pulseSoft 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Logo gradiente */
+.brand-gradient {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+}
+.brand-text {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

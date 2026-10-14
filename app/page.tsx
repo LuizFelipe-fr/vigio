@@ -14,6 +14,7 @@ import {
   diasRestantesGarantia,
   vencimentoGarantia,
   proximaManutencao,
+  progressoGarantia,
   formatarData,
   formatarMoeda,
   StatusGarantia,
@@ -22,12 +23,12 @@ import ItemForm from "./components/ItemForm";
 
 const STATUS_META: Record<
   StatusGarantia,
-  { label: string; cor: string; bg: string }
+  { label: string; cor: string; soft: string }
 > = {
-  ativa: { label: "Garantia ativa", cor: "var(--ok)", bg: "color-mix(in srgb, var(--ok) 14%, transparent)" },
-  "vence-breve": { label: "Vence em breve", cor: "var(--warn)", bg: "color-mix(in srgb, var(--warn) 16%, transparent)" },
-  vencida: { label: "Garantia vencida", cor: "var(--danger)", bg: "color-mix(in srgb, var(--danger) 14%, transparent)" },
-  "sem-garantia": { label: "Sem garantia", cor: "var(--muted)", bg: "var(--surface-2)" },
+  ativa: { label: "Garantia ativa", cor: "var(--ok)", soft: "var(--ok-soft)" },
+  "vence-breve": { label: "Vence em breve", cor: "var(--warn)", soft: "var(--warn-soft)" },
+  vencida: { label: "Garantia vencida", cor: "var(--danger)", soft: "var(--danger-soft)" },
+  "sem-garantia": { label: "Sem garantia", cor: "var(--muted)", soft: "var(--surface-2)" },
 };
 
 export default function Home() {
@@ -66,12 +67,19 @@ export default function Home() {
   const valorProtegido = useMemo(
     () =>
       itens
-        .filter((i) => statusGarantia(i) === "ativa" || statusGarantia(i) === "vence-breve")
+        .filter(
+          (i) =>
+            statusGarantia(i) === "ativa" || statusGarantia(i) === "vence-breve"
+        )
         .reduce((s, i) => s + (i.valor ?? 0), 0),
     [itens]
   );
   const garantiasAtivas = useMemo(
-    () => itens.filter((i) => statusGarantia(i) !== "vencida" && statusGarantia(i) !== "sem-garantia").length,
+    () =>
+      itens.filter(
+        (i) =>
+          statusGarantia(i) !== "vencida" && statusGarantia(i) !== "sem-garantia"
+      ).length,
     [itens]
   );
 
@@ -106,25 +114,34 @@ export default function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-4 pb-28">
+    <main className="mx-auto w-full max-w-2xl px-4 pb-32">
       {/* Header */}
-      <header className="flex items-center justify-between py-5">
-        <div className="flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-brand text-brand-fg text-lg">
+      <header className="flex items-center justify-between pt-7 pb-6">
+        <div className="flex items-center gap-3">
+          <div className="brand-gradient grid h-11 w-11 place-items-center rounded-2xl text-xl shadow-[var(--shadow-brand)]">
             👁️
           </div>
           <div>
-            <h1 className="text-xl font-extrabold leading-none">Vigio</h1>
-            <p className="text-xs text-muted">garantias &amp; notas sob controle</p>
+            <h1 className="brand-text text-2xl font-black leading-none tracking-tight">
+              Vigio
+            </h1>
+            <p className="text-[12px] text-muted mt-1 font-medium">
+              garantias &amp; notas sob controle
+            </p>
           </div>
         </div>
       </header>
 
       {/* Stats */}
-      <section className="grid grid-cols-3 gap-3 mb-5">
-        <Stat titulo="Itens" valor={itens.length.toString()} />
-        <Stat titulo="Garantias ok" valor={garantiasAtivas.toString()} />
+      <section className="grid grid-cols-3 gap-3 mb-6">
+        <Stat icone="📦" titulo="Itens" valor={itens.length.toString()} />
         <Stat
+          icone="🛡️"
+          titulo="Garantias ok"
+          valor={garantiasAtivas.toString()}
+        />
+        <Stat
+          icone="💰"
           titulo="Protegido"
           valor={valorProtegido > 0 ? formatarMoeda(valorProtegido) : "—"}
         />
@@ -132,32 +149,45 @@ export default function Home() {
 
       {/* Alertas */}
       {alertas.length > 0 && (
-        <section className="mb-5">
-          <h2 className="text-sm font-semibold text-muted mb-2 px-1">
-            ⚠️ Precisa da sua atenção
-          </h2>
-          <div className="space-y-2">
+        <section className="mb-6 anim-fade-up">
+          <div className="flex items-center gap-2 mb-2.5 px-1">
+            <span className="dot-pulse inline-block h-2 w-2 rounded-full bg-warn" />
+            <h2 className="text-[13px] font-bold uppercase tracking-wider text-muted">
+              Precisa da sua atenção
+            </h2>
+          </div>
+          <div className="space-y-2.5">
             {alertas.map((a, idx) => {
               const urgente = a.dias < 0;
+              const cor = urgente ? "var(--danger)" : "var(--warn)";
+              const soft = urgente ? "var(--danger-soft)" : "var(--warn-soft)";
               return (
                 <button
                   key={idx}
                   onClick={() => setDetalhe(a.item)}
-                  className="w-full flex items-center gap-3 rounded-2xl border p-3 text-left"
-                  style={{
-                    borderColor: urgente ? "var(--danger)" : "var(--warn)",
-                    background: urgente
-                      ? "color-mix(in srgb, var(--danger) 10%, transparent)"
-                      : "color-mix(in srgb, var(--warn) 10%, transparent)",
-                  }}
+                  className="group w-full flex items-center gap-3.5 rounded-2xl border p-3.5 text-left shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] active:scale-[0.99]"
+                  style={{ borderColor: cor, background: soft }}
                 >
-                  <span className="text-xl">
+                  <span
+                    className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-lg"
+                    style={{ background: "var(--surface)", color: cor }}
+                  >
                     {a.tipo === "garantia" ? "🛡️" : "🔧"}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-[15px] truncate">{a.titulo}</p>
-                    <p className="text-sm text-muted">{a.descricao}</p>
+                    <p className="font-semibold text-[15px] truncate text-foreground">
+                      {a.titulo}
+                    </p>
+                    <p className="text-[13px]" style={{ color: cor }}>
+                      {a.descricao}
+                    </p>
                   </div>
+                  <span
+                    className="text-lg opacity-40 transition group-hover:translate-x-0.5"
+                    style={{ color: cor }}
+                  >
+                    ›
+                  </span>
                 </button>
               );
             })}
@@ -167,24 +197,47 @@ export default function Home() {
 
       {/* Busca */}
       {itens.length > 0 && (
-        <input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar produto ou loja…"
-          className="w-full rounded-xl border border-border bg-surface px-4 py-2.5 mb-4 outline-none focus:border-brand"
-        />
+        <div className="relative mb-4">
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-2">
+            🔍
+          </span>
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar produto ou loja…"
+            className="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 py-3 text-[15px] shadow-[var(--shadow-sm)] outline-none transition focus:border-brand focus:ring-4 focus:ring-[var(--brand-soft)]"
+          />
+        </div>
       )}
 
       {/* Lista */}
       {carregando ? (
-        <p className="text-muted text-center py-10">Carregando…</p>
+        <div className="space-y-2.5">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-[72px] rounded-2xl border border-border bg-surface/60 animate-pulse"
+            />
+          ))}
+        </div>
       ) : itens.length === 0 ? (
         <EmptyState onAdd={() => setFormAberto(true)} />
       ) : (
         <section className="space-y-2.5">
-          {itensFiltrados.map((item) => (
-            <ItemCard key={item.id} item={item} onClick={() => setDetalhe(item)} />
+          {itensFiltrados.map((item, i) => (
+            <div
+              key={item.id}
+              className="anim-fade-up"
+              style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
+            >
+              <ItemCard item={item} onClick={() => setDetalhe(item)} />
+            </div>
           ))}
+          {itensFiltrados.length === 0 && (
+            <p className="text-center text-muted py-10 text-sm">
+              Nenhum item encontrado para “{busca}”.
+            </p>
+          )}
         </section>
       )}
 
@@ -194,9 +247,9 @@ export default function Home() {
           setEditando(undefined);
           setFormAberto(true);
         }}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-brand px-5 py-4 font-semibold text-brand-fg shadow-xl active:scale-95 transition"
+        className="brand-gradient fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-2xl px-5 py-4 font-semibold text-brand-fg shadow-[var(--shadow-brand)] transition active:scale-95 hover:brightness-105"
       >
-        <span className="text-lg leading-none">+</span> Adicionar
+        <span className="text-xl leading-none -mt-0.5">+</span> Adicionar
       </button>
 
       {formAberto && (
@@ -227,11 +280,24 @@ export default function Home() {
   );
 }
 
-function Stat({ titulo, valor }: { titulo: string; valor: string }) {
+function Stat({
+  icone,
+  titulo,
+  valor,
+}: {
+  icone: string;
+  titulo: string;
+  valor: string;
+}) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-3">
-      <p className="text-[11px] uppercase tracking-wide text-muted">{titulo}</p>
-      <p className="text-lg font-bold mt-0.5 truncate">{valor}</p>
+    <div className="rounded-2xl border border-border bg-surface p-3.5 shadow-[var(--shadow-sm)]">
+      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-2">
+        <span className="text-sm">{icone}</span>
+        {titulo}
+      </div>
+      <p className="text-[19px] font-bold mt-1.5 truncate leading-none">
+        {valor}
+      </p>
     </div>
   );
 }
@@ -240,52 +306,72 @@ function ItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
   const status = statusGarantia(item);
   const meta = STATUS_META[status];
   const dias = diasRestantesGarantia(item);
+  const prog = progressoGarantia(item);
   const cat = CATEGORIAS.find((c) => c.value === item.categoria);
+
+  const badge =
+    status === "vencida"
+      ? "vencida"
+      : dias !== null
+      ? `${dias}d`
+      : "—";
+
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 rounded-2xl border border-border bg-surface p-3.5 text-left hover:border-brand transition"
+      className="group w-full rounded-2xl border border-border bg-surface p-3.5 text-left shadow-[var(--shadow-sm)] transition hover:border-border-strong hover:bg-surface-hover hover:shadow-[var(--shadow-md)] active:scale-[0.995]"
     >
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-surface-2 text-xl">
-        {cat?.emoji ?? "📦"}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="font-semibold truncate">{item.nome}</p>
-        <p className="text-sm text-muted truncate">
-          {item.loja ? `${item.loja} · ` : ""}
-          Comprado em {formatarData(new Date(item.dataCompra + "T00:00:00"))}
-        </p>
-      </div>
-      <div className="text-right shrink-0">
+      <div className="flex items-center gap-3.5">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-surface-2 text-xl transition group-hover:scale-105">
+          {cat?.emoji ?? "📦"}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold truncate leading-tight">{item.nome}</p>
+          <p className="text-[13px] text-muted truncate mt-0.5">
+            {item.loja ? `${item.loja} · ` : ""}
+            {formatarData(new Date(item.dataCompra + "T00:00:00"))}
+          </p>
+        </div>
         <span
-          className="inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
-          style={{ color: meta.cor, background: meta.bg }}
+          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums"
+          style={{ color: meta.cor, background: meta.soft }}
         >
-          {status === "ativa" && dias !== null
-            ? `${dias}d`
-            : status === "vence-breve" && dias !== null
-            ? `${dias}d`
-            : status === "vencida"
-            ? "vencida"
-            : "—"}
+          {badge}
         </span>
       </div>
+
+      {/* Barra de progresso da garantia */}
+      {prog !== null && (
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.round(prog * 100)}%`,
+              background: meta.cor,
+            }}
+          />
+        </div>
+      )}
     </button>
   );
 }
 
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="text-center py-16">
-      <div className="text-5xl mb-4">🧾</div>
-      <h2 className="text-lg font-bold mb-2">Comece guardando sua primeira nota</h2>
-      <p className="text-muted max-w-xs mx-auto mb-6">
+    <div className="text-center py-16 anim-fade-up">
+      <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-3xl bg-brand-soft text-4xl shadow-[var(--shadow-sm)]">
+        🧾
+      </div>
+      <h2 className="text-xl font-bold mb-2">
+        Guarde sua primeira nota
+      </h2>
+      <p className="text-muted max-w-xs mx-auto mb-7 leading-relaxed">
         Cadastre um produto, tire foto da nota fiscal e o Vigio avisa você antes
         da garantia vencer.
       </p>
       <button
         onClick={onAdd}
-        className="rounded-xl bg-brand px-6 py-3 font-semibold text-brand-fg"
+        className="brand-gradient rounded-2xl px-6 py-3.5 font-semibold text-brand-fg shadow-[var(--shadow-brand)] transition active:scale-95 hover:brightness-105"
       >
         + Adicionar primeiro item
       </button>
@@ -310,42 +396,66 @@ function DetalheItem({
   const meta = STATUS_META[status];
   const venc = vencimentoGarantia(item);
   const prox = proximaManutencao(item);
+  const prog = progressoGarantia(item);
+  const dias = diasRestantesGarantia(item);
   const cat = CATEGORIAS.find((c) => c.value === item.categoria);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50"
+      className="anim-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm"
       onClick={onFechar}
     >
       <div
-        className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-surface p-5 sm:p-6 shadow-2xl"
+        className="anim-sheet w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[28px] sm:rounded-[28px] border border-border bg-surface p-5 sm:p-6 shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start gap-3 mb-4">
-          <div className="grid h-12 w-12 place-items-center rounded-xl bg-surface-2 text-2xl">
+        {/* Handle mobile */}
+        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border-strong sm:hidden" />
+
+        <div className="flex items-start gap-3.5 mb-4">
+          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-surface-2 text-2xl">
             {cat?.emoji ?? "📦"}
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold leading-tight">{item.nome}</h2>
             <span
-              className="mt-1 inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold"
-              style={{ color: meta.cor, background: meta.bg }}
+              className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+              style={{ color: meta.cor, background: meta.soft }}
             >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ background: meta.cor }}
+              />
               {meta.label}
+              {dias !== null &&
+                status !== "vencida" &&
+                ` · ${dias} dia${dias === 1 ? "" : "s"}`}
             </span>
           </div>
         </div>
+
+        {/* Barra de progresso grande */}
+        {prog !== null && (
+          <div className="mb-4">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${Math.round(prog * 100)}%`, background: meta.cor }}
+              />
+            </div>
+          </div>
+        )}
 
         {item.notaFoto && (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={item.notaFoto}
             alt="Nota fiscal"
-            className="w-full rounded-xl border border-border max-h-64 object-contain bg-surface-2 mb-4"
+            className="w-full rounded-2xl border border-border max-h-64 object-contain bg-surface-2 mb-4"
           />
         )}
 
-        <dl className="space-y-2.5 text-[15px]">
+        <dl className="rounded-2xl border border-border bg-surface-2/50 divide-y divide-border overflow-hidden">
           <Linha rotulo="Loja" valor={item.loja ?? "—"} />
           <Linha
             rotulo="Comprado em"
@@ -365,33 +475,33 @@ function DetalheItem({
           {item.obs && <Linha rotulo="Obs" valor={item.obs} />}
         </dl>
 
-        <div className="mt-6 space-y-2">
+        <div className="mt-5 space-y-2.5">
           {item.manutencaoMeses ? (
             <button
               onClick={onManutencao}
-              className="w-full rounded-xl bg-surface-2 border border-border py-3 font-medium"
+              className="w-full rounded-2xl border border-border bg-surface-2 py-3 font-medium transition hover:bg-surface-hover active:scale-[0.99]"
             >
               🔧 Registrar manutenção feita hoje
             </button>
           ) : null}
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             <button
               onClick={onEditar}
-              className="flex-1 rounded-xl bg-brand py-3 font-semibold text-brand-fg"
+              className="brand-gradient flex-1 rounded-2xl py-3 font-semibold text-brand-fg shadow-[var(--shadow-brand)] transition active:scale-[0.98] hover:brightness-105"
             >
               Editar
             </button>
             <button
               onClick={onRemover}
-              className="rounded-xl border border-border px-4 py-3 font-medium"
-              style={{ color: "var(--danger)" }}
+              className="rounded-2xl border px-5 py-3 font-medium transition active:scale-[0.98]"
+              style={{ color: "var(--danger)", borderColor: "var(--danger-soft)" }}
             >
               Excluir
             </button>
           </div>
           <button
             onClick={onFechar}
-            className="w-full py-2 text-muted text-sm"
+            className="w-full py-2 text-muted text-sm transition hover:text-foreground"
           >
             Fechar
           </button>
@@ -403,9 +513,9 @@ function DetalheItem({
 
 function Linha({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-border pb-2">
-      <dt className="text-muted">{rotulo}</dt>
-      <dd className="font-medium text-right">{valor}</dd>
+    <div className="flex justify-between gap-4 px-4 py-3">
+      <dt className="text-muted text-[14px]">{rotulo}</dt>
+      <dd className="font-medium text-right text-[14px]">{valor}</dd>
     </div>
   );
 }

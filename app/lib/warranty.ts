@@ -40,6 +40,18 @@ export function statusGarantia(item: Item): StatusGarantia {
   return "ativa";
 }
 
+/** Fração decorrida da garantia, de 0 (recém-comprado) a 1 (vencida). */
+export function progressoGarantia(item: Item): number | null {
+  const venc = vencimentoGarantia(item);
+  if (!venc) return null;
+  const inicio = new Date(item.dataCompra + "T00:00:00").getTime();
+  const fim = venc.getTime();
+  const agora = hoje().getTime();
+  if (fim <= inicio) return 1;
+  const frac = (agora - inicio) / (fim - inicio);
+  return Math.max(0, Math.min(1, frac));
+}
+
 export function proximaManutencao(item: Item): Date | null {
   if (!item.manutencaoMeses || item.manutencaoMeses <= 0) return null;
   const base = item.ultimaManutencao || item.dataCompra;

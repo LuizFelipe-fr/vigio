@@ -74,15 +74,16 @@ export default function ItemForm({ inicial, onSalvar, onCancelar }: Props) {
   }
 
   const campo =
-    "w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-[15px] outline-none focus:border-brand transition";
+    "w-full rounded-xl border border-border bg-surface-2 px-3.5 py-2.5 text-[15px] outline-none transition focus:border-brand focus:ring-4 focus:ring-[var(--brand-soft)]";
   const label = "block text-sm font-medium mb-1.5 text-muted";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4">
+    <div className="anim-overlay fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/55 backdrop-blur-sm p-0 sm:p-4">
       <form
         onSubmit={handleSubmit}
-        className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-surface p-5 sm:p-6 shadow-2xl"
+        className="anim-sheet w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[28px] sm:rounded-[28px] border border-border bg-surface p-5 sm:p-6 shadow-[var(--shadow-lg)]"
       >
+        <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border-strong sm:hidden" />
         <h2 className="text-xl font-bold mb-5">
           {inicial ? "Editar item" : "Novo item"}
         </h2>
@@ -107,10 +108,10 @@ export default function ItemForm({ inicial, onSalvar, onCancelar }: Props) {
                   type="button"
                   key={c.value}
                   onClick={() => setCategoria(c.value)}
-                  className={`rounded-xl border px-2 py-2.5 text-sm transition ${
+                  className={`rounded-xl border px-2 py-2.5 text-sm transition active:scale-95 ${
                     categoria === c.value
-                      ? "border-brand bg-brand text-brand-fg font-medium"
-                      : "border-border bg-surface-2 text-muted"
+                      ? "brand-gradient border-transparent text-brand-fg font-semibold shadow-[var(--shadow-brand)]"
+                      : "border-border bg-surface-2 text-muted hover:border-border-strong"
                   }`}
                 >
                   <span className="mr-1">{c.emoji}</span>
@@ -187,7 +188,7 @@ export default function ItemForm({ inicial, onSalvar, onCancelar }: Props) {
               accept="image/*"
               capture="environment"
               onChange={handleFoto}
-              className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand file:px-4 file:py-2 file:text-brand-fg file:font-medium"
+              className="block w-full text-sm text-muted file:mr-3 file:rounded-xl file:border-0 file:bg-brand-soft file:px-4 file:py-2 file:text-brand file:font-semibold file:cursor-pointer"
             />
             {processandoFoto && (
               <p className="text-sm text-muted mt-2">Processando imagem…</p>
@@ -227,13 +228,13 @@ export default function ItemForm({ inicial, onSalvar, onCancelar }: Props) {
           <button
             type="button"
             onClick={onCancelar}
-            className="flex-1 rounded-xl border border-border py-3 font-medium text-muted"
+            className="flex-1 rounded-2xl border border-border py-3 font-medium text-muted transition hover:bg-surface-2 active:scale-[0.98]"
           >
             Cancelar
           </button>
           <button
             type="submit"
-            className="flex-1 rounded-xl bg-brand py-3 font-semibold text-brand-fg"
+            className="brand-gradient flex-1 rounded-2xl py-3 font-semibold text-brand-fg shadow-[var(--shadow-brand)] transition active:scale-[0.98] hover:brightness-105"
           >
             Salvar
           </button>
