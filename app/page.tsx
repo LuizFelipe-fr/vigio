@@ -2,12 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Item, ItemInput, CATEGORIAS } from "./lib/types";
-import {
-  listarItens,
-  salvarItem,
-  atualizarItem,
-  removerItem,
-} from "./lib/db";
+import { listarItens, salvarItem, atualizarItem, removerItem } from "./lib/db";
 import {
   gerarAlertas,
   statusGarantia,
@@ -31,12 +26,19 @@ const STATUS_META: Record<
   "sem-garantia": { label: "Sem garantia", cor: "var(--muted)", soft: "var(--surface-2)" },
 };
 
+type Filtro = "todos" | "vencendo" | "ativas" | "vencidas";
+
+function catDe(item: Item) {
+  return CATEGORIAS.find((c) => c.value === item.categoria) ?? CATEGORIAS[5];
+}
+
 export default function Home() {
   const [itens, setItens] = useState<Item[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [formAberto, setFormAberto] = useState(false);
   const [editando, setEditando] = useState<Item | undefined>();
   const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [detalhe, setDetalhe] = useState<Item | null>(null);
 
   useEffect(() => {
@@ -48,21 +50,43 @@ export default function Home() {
 
   const alertas = useMemo(() => gerarAlertas(itens), [itens]);
 
+  const contagem = useMemo(() => {
+    let vencendo = 0,
+      ativas = 0,
+      vencidas = 0;
+    for (const i of itens) {
+      const s = statusGarantia(i);
+      if (s === "vence-breve") vencendo++;
+      else if (s === "ativa") ativas++;
+      else if (s === "vencida") vencidas++;
+    }
+    return { todos: itens.length, vencendo, ativas, vencidas };
+  }, [itens]);
+
   const itensFiltrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    const lista = q
-      ? itens.filter(
-          (i) =>
-            i.nome.toLowerCase().includes(q) ||
-            (i.loja ?? "").toLowerCase().includes(q)
-        )
-      : itens;
+    let lista = itens;
+    if (filtro !== "todos") {
+      lista = lista.filter((i) => {
+        const s = statusGarantia(i);
+        if (filtro === "vencendo") return s === "vence-breve";
+        if (filtro === "ativas") return s === "ativa";
+        if (filtro === "vencidas") return s === "vencida";
+        return true;
+      });
+    }
+    if (q)
+      lista = lista.filter(
+        (i) =>
+          i.nome.toLowerCase().includes(q) ||
+          (i.loja ?? "").toLowerCase().includes(q)
+      );
     return [...lista].sort((a, b) => {
       const da = diasRestantesGarantia(a) ?? Infinity;
       const db = diasRestantesGarantia(b) ?? Infinity;
       return da - db;
     });
-  }, [itens, busca]);
+  }, [itens, busca, filtro]);
 
   const valorProtegido = useMemo(
     () =>
@@ -74,14 +98,8 @@ export default function Home() {
         .reduce((s, i) => s + (i.valor ?? 0), 0),
     [itens]
   );
-  const garantiasAtivas = useMemo(
-    () =>
-      itens.filter(
-        (i) =>
-          statusGarantia(i) !== "vencida" && statusGarantia(i) !== "sem-garantia"
-      ).length,
-    [itens]
-  );
+  const comGarantia = contagem.ativas + contagem.vencendo;
+  const saude = itens.length > 0 ? comGarantia / itens.length : 0;
 
   async function handleSalvar(input: ItemInput, id?: string) {
     if (id) {
@@ -116,7 +134,7 @@ export default function Home() {
   return (
     <main className="mx-auto w-full max-w-2xl px-4 pb-32">
       {/* Header */}
-      <header className="flex items-center justify-between pt-7 pb-6">
+      <header className="flex items-center justify-between pt-7 pb-5">
         <div className="flex items-center gap-3">
           <div className="brand-gradient grid h-11 w-11 place-items-center rounded-2xl text-xl shadow-[var(--shadow-brand)]">
             👁️
@@ -132,20 +150,15 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Stats */}
-      <section className="grid grid-cols-3 gap-3 mb-6">
-        <Stat icone="📦" titulo="Itens" valor={itens.length.toString()} />
-        <Stat
-          icone="🛡️"
-          titulo="Garantias ok"
-          valor={garantiasAtivas.toString()}
-        />
-        <Stat
-          icone="💰"
-          titulo="Protegido"
-          valor={valorProtegido > 0 ? formatarMoeda(valorProtegido) : "—"}
-        />
-      </section>
+      {/* Hero */}
+      <HeroCard
+        valorProtegido={valorProtegido}
+        saude={saude}
+        total={itens.length}
+        comGarantia={comGarantia}
+        vencendo={contagem.vencendo}
+        vencidas={contagem.vencidas}
+      />
 
       {/* Alertas */}
       {alertas.length > 0 && (
@@ -195,19 +208,28 @@ export default function Home() {
         </section>
       )}
 
-      {/* Busca */}
+      {/* Filtros + busca */}
       {itens.length > 0 && (
-        <div className="relative mb-4">
-          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-2">
-            🔍
-          </span>
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar produto ou loja…"
-            className="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 py-3 text-[15px] shadow-[var(--shadow-sm)] outline-none transition focus:border-brand focus:ring-4 focus:ring-[var(--brand-soft)]"
-          />
-        </div>
+        <>
+          <div className="flex gap-2 overflow-x-auto pb-1 mb-3 -mx-1 px-1 no-scrollbar">
+            <Tab ativo={filtro === "todos"} onClick={() => setFiltro("todos")} label="Todos" n={contagem.todos} />
+            <Tab ativo={filtro === "vencendo"} onClick={() => setFiltro("vencendo")} label="Vencendo" n={contagem.vencendo} cor="var(--warn)" />
+            <Tab ativo={filtro === "ativas"} onClick={() => setFiltro("ativas")} label="Ativas" n={contagem.ativas} cor="var(--ok)" />
+            <Tab ativo={filtro === "vencidas"} onClick={() => setFiltro("vencidas")} label="Vencidas" n={contagem.vencidas} cor="var(--danger)" />
+          </div>
+
+          <div className="relative mb-4">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-2">
+              🔍
+            </span>
+            <input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar produto ou loja…"
+              className="w-full rounded-2xl border border-border bg-surface pl-11 pr-4 py-3 text-[15px] shadow-[var(--shadow-sm)] outline-none transition focus:border-brand focus:ring-4 focus:ring-[var(--brand-soft)]"
+            />
+          </div>
+        </>
       )}
 
       {/* Lista */}
@@ -216,7 +238,7 @@ export default function Home() {
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="h-[72px] rounded-2xl border border-border bg-surface/60 animate-pulse"
+              className="h-[84px] rounded-2xl border border-border bg-surface/60 animate-pulse"
             />
           ))}
         </div>
@@ -235,13 +257,13 @@ export default function Home() {
           ))}
           {itensFiltrados.length === 0 && (
             <p className="text-center text-muted py-10 text-sm">
-              Nenhum item encontrado para “{busca}”.
+              Nada aqui {busca ? `para “${busca}”` : "neste filtro"}.
             </p>
           )}
         </section>
       )}
 
-      {/* Botão flutuante */}
+      {/* FAB */}
       <button
         onClick={() => {
           setEditando(undefined);
@@ -280,57 +302,183 @@ export default function Home() {
   );
 }
 
-function Stat({
-  icone,
-  titulo,
-  valor,
+/* ---------- Hero ---------- */
+function HeroCard({
+  valorProtegido,
+  saude,
+  total,
+  comGarantia,
+  vencendo,
+  vencidas,
 }: {
-  icone: string;
-  titulo: string;
-  valor: string;
+  valorProtegido: number;
+  saude: number;
+  total: number;
+  comGarantia: number;
+  vencendo: number;
+  vencidas: number;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface p-3.5 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-2">
-        <span className="text-sm">{icone}</span>
-        {titulo}
+    <section className="hero-card relative overflow-hidden rounded-[26px] p-5 mb-6 anim-fade-up shadow-[var(--shadow-lg)]">
+      <div className="hero-glow" />
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold uppercase tracking-wider text-white/70">
+            Valor protegido
+          </p>
+          <p className="mt-1 text-[30px] font-black leading-none text-white">
+            {valorProtegido > 0 ? formatarMoeda(valorProtegido) : "R$ 0"}
+          </p>
+          <p className="mt-2 text-[13px] text-white/75">
+            {total === 0
+              ? "Comece adicionando um item"
+              : `${comGarantia} de ${total} ${total === 1 ? "item" : "itens"} com garantia ativa`}
+          </p>
+        </div>
+        <Donut fraction={saude} />
       </div>
-      <p className="text-[19px] font-bold mt-1.5 truncate leading-none">
+
+      <div className="relative mt-5 grid grid-cols-3 gap-2">
+        <HeroChip valor={total} label="Itens" />
+        <HeroChip valor={vencendo} label="Vencendo" destaque={vencendo > 0 ? "#ffd27a" : undefined} />
+        <HeroChip valor={vencidas} label="Vencidas" destaque={vencidas > 0 ? "#ffb4b0" : undefined} />
+      </div>
+    </section>
+  );
+}
+
+function HeroChip({
+  valor,
+  label,
+  destaque,
+}: {
+  valor: number;
+  label: string;
+  destaque?: string;
+}) {
+  return (
+    <div className="rounded-2xl bg-white/12 px-3 py-2.5 backdrop-blur-sm border border-white/10">
+      <p
+        className="text-[20px] font-bold leading-none"
+        style={{ color: destaque ?? "#fff" }}
+      >
         {valor}
       </p>
+      <p className="text-[11px] mt-1 text-white/70">{label}</p>
     </div>
   );
 }
 
+function Donut({ fraction }: { fraction: number }) {
+  const r = 26;
+  const c = 2 * Math.PI * r;
+  const pct = Math.round(fraction * 100);
+  return (
+    <div className="relative shrink-0">
+      <svg width="76" height="76" viewBox="0 0 76 76" className="-rotate-90">
+        <circle cx="38" cy="38" r={r} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="7" />
+        <circle
+          cx="38"
+          cy="38"
+          r={r}
+          fill="none"
+          stroke="#fff"
+          strokeWidth="7"
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - fraction)}
+          style={{ transition: "stroke-dashoffset 0.6s cubic-bezier(0.22,1,0.36,1)" }}
+        />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center">
+        <span className="text-[17px] font-black text-white leading-none">{pct}%</span>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tabs ---------- */
+function Tab({
+  ativo,
+  onClick,
+  label,
+  n,
+  cor,
+}: {
+  ativo: boolean;
+  onClick: () => void;
+  label: string;
+  n: number;
+  cor?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-semibold transition active:scale-95 ${
+        ativo
+          ? "border-transparent bg-foreground text-background"
+          : "border-border bg-surface text-muted hover:border-border-strong"
+      }`}
+    >
+      {cor && !ativo && (
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: cor }} />
+      )}
+      {label}
+      <span
+        className={`rounded-full px-1.5 py-0.5 text-[11px] leading-none ${
+          ativo ? "bg-background/20" : "bg-surface-2 text-muted-2"
+        }`}
+      >
+        {n}
+      </span>
+    </button>
+  );
+}
+
+/* ---------- Item card ---------- */
 function ItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
   const status = statusGarantia(item);
   const meta = STATUS_META[status];
   const dias = diasRestantesGarantia(item);
   const prog = progressoGarantia(item);
-  const cat = CATEGORIAS.find((c) => c.value === item.categoria);
+  const cat = catDe(item);
 
-  const badge =
-    status === "vencida"
-      ? "vencida"
-      : dias !== null
-      ? `${dias}d`
-      : "—";
+  const badge = status === "vencida" ? "vencida" : dias !== null ? `${dias}d` : "—";
 
   return (
     <button
       onClick={onClick}
-      className="group w-full rounded-2xl border border-border bg-surface p-3.5 text-left shadow-[var(--shadow-sm)] transition hover:border-border-strong hover:bg-surface-hover hover:shadow-[var(--shadow-md)] active:scale-[0.995]"
+      className="group relative w-full overflow-hidden rounded-2xl border border-border bg-surface p-3.5 pl-4 text-left shadow-[var(--shadow-sm)] transition hover:border-border-strong hover:bg-surface-hover hover:shadow-[var(--shadow-md)] active:scale-[0.995]"
     >
+      {/* acento de categoria */}
+      <span
+        className="absolute left-0 top-0 h-full w-1"
+        style={{ background: cat.cor }}
+      />
       <div className="flex items-center gap-3.5">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-surface-2 text-xl transition group-hover:scale-105">
-          {cat?.emoji ?? "📦"}
+        <div
+          className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-xl transition group-hover:scale-105"
+          style={{ background: `color-mix(in srgb, ${cat.cor} 16%, transparent)` }}
+        >
+          {cat.emoji}
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-semibold truncate leading-tight">{item.nome}</p>
-          <p className="text-[13px] text-muted truncate mt-0.5">
-            {item.loja ? `${item.loja} · ` : ""}
-            {formatarData(new Date(item.dataCompra + "T00:00:00"))}
-          </p>
+          <div className="mt-1 flex items-center gap-1.5 text-[12px] text-muted">
+            <span
+              className="rounded-md px-1.5 py-0.5 font-medium"
+              style={{
+                color: cat.cor,
+                background: `color-mix(in srgb, ${cat.cor} 14%, transparent)`,
+              }}
+            >
+              {cat.label}
+            </span>
+            <span className="truncate">
+              {item.loja ? `${item.loja} · ` : ""}
+              {formatarData(new Date(item.dataCompra + "T00:00:00"))}
+            </span>
+          </div>
         </div>
         <span
           className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums"
@@ -340,15 +488,11 @@ function ItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
         </span>
       </div>
 
-      {/* Barra de progresso da garantia */}
       {prog !== null && (
         <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
           <div
             className="h-full rounded-full transition-all"
-            style={{
-              width: `${Math.round(prog * 100)}%`,
-              background: meta.cor,
-            }}
+            style={{ width: `${Math.round(prog * 100)}%`, background: meta.cor }}
           />
         </div>
       )}
@@ -356,15 +500,14 @@ function ItemCard({ item, onClick }: { item: Item; onClick: () => void }) {
   );
 }
 
+/* ---------- Empty ---------- */
 function EmptyState({ onAdd }: { onAdd: () => void }) {
   return (
-    <div className="text-center py-16 anim-fade-up">
+    <div className="text-center py-14 anim-fade-up">
       <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-3xl bg-brand-soft text-4xl shadow-[var(--shadow-sm)]">
         🧾
       </div>
-      <h2 className="text-xl font-bold mb-2">
-        Guarde sua primeira nota
-      </h2>
+      <h2 className="text-xl font-bold mb-2">Guarde sua primeira nota</h2>
       <p className="text-muted max-w-xs mx-auto mb-7 leading-relaxed">
         Cadastre um produto, tire foto da nota fiscal e o Vigio avisa você antes
         da garantia vencer.
@@ -379,6 +522,7 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+/* ---------- Detalhe ---------- */
 function DetalheItem({
   item,
   onFechar,
@@ -398,7 +542,7 @@ function DetalheItem({
   const prox = proximaManutencao(item);
   const prog = progressoGarantia(item);
   const dias = diasRestantesGarantia(item);
-  const cat = CATEGORIAS.find((c) => c.value === item.categoria);
+  const cat = catDe(item);
 
   return (
     <div
@@ -409,12 +553,14 @@ function DetalheItem({
         className="anim-sheet w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-[28px] sm:rounded-[28px] border border-border bg-surface p-5 sm:p-6 shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Handle mobile */}
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-border-strong sm:hidden" />
 
         <div className="flex items-start gap-3.5 mb-4">
-          <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-surface-2 text-2xl">
-            {cat?.emoji ?? "📦"}
+          <div
+            className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-2xl"
+            style={{ background: `color-mix(in srgb, ${cat.cor} 16%, transparent)` }}
+          >
+            {cat.emoji}
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-xl font-bold leading-tight">{item.nome}</h2>
@@ -422,27 +568,19 @@ function DetalheItem({
               className="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
               style={{ color: meta.cor, background: meta.soft }}
             >
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ background: meta.cor }}
-              />
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: meta.cor }} />
               {meta.label}
-              {dias !== null &&
-                status !== "vencida" &&
-                ` · ${dias} dia${dias === 1 ? "" : "s"}`}
+              {dias !== null && status !== "vencida" && ` · ${dias} dia${dias === 1 ? "" : "s"}`}
             </span>
           </div>
         </div>
 
-        {/* Barra de progresso grande */}
         {prog !== null && (
-          <div className="mb-4">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-surface-2">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${Math.round(prog * 100)}%`, background: meta.cor }}
-              />
-            </div>
+          <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${Math.round(prog * 100)}%`, background: meta.cor }}
+            />
           </div>
         )}
 
@@ -457,21 +595,10 @@ function DetalheItem({
 
         <dl className="rounded-2xl border border-border bg-surface-2/50 divide-y divide-border overflow-hidden">
           <Linha rotulo="Loja" valor={item.loja ?? "—"} />
-          <Linha
-            rotulo="Comprado em"
-            valor={formatarData(new Date(item.dataCompra + "T00:00:00"))}
-          />
-          <Linha
-            rotulo="Garantia até"
-            valor={venc ? formatarData(venc) : "Sem garantia"}
-          />
-          <Linha
-            rotulo="Valor"
-            valor={item.valor ? formatarMoeda(item.valor) : "—"}
-          />
-          {prox && (
-            <Linha rotulo="Próxima manutenção" valor={formatarData(prox)} />
-          )}
+          <Linha rotulo="Comprado em" valor={formatarData(new Date(item.dataCompra + "T00:00:00"))} />
+          <Linha rotulo="Garantia até" valor={venc ? formatarData(venc) : "Sem garantia"} />
+          <Linha rotulo="Valor" valor={item.valor ? formatarMoeda(item.valor) : "—"} />
+          {prox && <Linha rotulo="Próxima manutenção" valor={formatarData(prox)} />}
           {item.obs && <Linha rotulo="Obs" valor={item.obs} />}
         </dl>
 

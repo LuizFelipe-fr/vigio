@@ -6,13 +6,18 @@ export type Categoria =
   | "ferramenta"
   | "outro";
 
-export const CATEGORIAS: { value: Categoria; label: string; emoji: string }[] = [
-  { value: "eletronico", label: "Eletrônico", emoji: "📱" },
-  { value: "eletrodomestico", label: "Eletrodoméstico", emoji: "🔌" },
-  { value: "veiculo", label: "Veículo", emoji: "🚗" },
-  { value: "movel", label: "Móvel", emoji: "🛋️" },
-  { value: "ferramenta", label: "Ferramenta", emoji: "🛠️" },
-  { value: "outro", label: "Outro", emoji: "📦" },
+export const CATEGORIAS: {
+  value: Categoria;
+  label: string;
+  emoji: string;
+  cor: string;
+}[] = [
+  { value: "eletronico", label: "Eletrônico", emoji: "📱", cor: "#5b8def" },
+  { value: "eletrodomestico", label: "Eletrodoméstico", emoji: "🔌", cor: "#10b4a6" },
+  { value: "veiculo", label: "Veículo", emoji: "🚗", cor: "#f0803c" },
+  { value: "movel", label: "Móvel", emoji: "🛋️", cor: "#b06ae0" },
+  { value: "ferramenta", label: "Ferramenta", emoji: "🛠️", cor: "#e0a92e" },
+  { value: "outro", label: "Outro", emoji: "📦", cor: "#7c8699" },
 ];
 
 export interface Item {

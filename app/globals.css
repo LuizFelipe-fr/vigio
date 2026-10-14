@@ -175,6 +175,28 @@ body {
   }
 }
 
+/* Hero */
+.hero-card {
+  background:
+    radial-gradient(120% 140% at 85% -20%, rgba(255, 255, 255, 0.18), transparent 55%),
+    linear-gradient(135deg, #5b4bf0 0%, #7c5cf5 45%, #9d5bf0 100%);
+}
+.hero-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(60% 80% at 10% 120%, rgba(255, 255, 255, 0.14), transparent 60%);
+  pointer-events: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Logo gradiente */
 .brand-gradient {
   background: linear-gradient(135deg, var(--brand), var(--brand-2));
